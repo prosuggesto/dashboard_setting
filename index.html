@@ -1396,10 +1396,8 @@
     <script>
         /* ─── Config ────────────────────────────────────────────── */
         const CODE = '070523';
-        const WEBHOOK_DATA = 'https://n8n.srv862127.hstgr.cloud/webhook/dashboard';
-        const WEBHOOK_SETTER = 'https://n8n.srv862127.hstgr.cloud/webhook/dashboard_lead_setter_humain';
-        const HEADER_DATA = { 'dashboard.01': 'dashboard.setting.01' };
-        const HEADER_SETTER = { 'setter.humain': 'update.lead.setter.01' };
+        const API_DATA = '/api/dashboard';
+        const API_SETTER = '/api/setter';
 
         /* ─── State ─────────────────────────────────────────────── */
         let allData = null;
@@ -1475,30 +1473,13 @@
 
         /* ─── WEBHOOK ───────────────────────────────────────────── */
         async function fetchDashboardData() {
-            const payload = { auth_key: 'dashboard.01', auth_value: 'dashboard.setting.01' };
-
-            // 1. Direct POST
-            try {
-                const res = await fetch(WEBHOOK_DATA, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', ...HEADER_DATA },
-                    body: JSON.stringify(payload)
-                });
-                if (!res.ok) throw new Error('HTTP ' + res.status);
-                return await res.json();
-            } catch (directErr) {
-                console.warn('Direct fetch failed, trying CORS proxy…', directErr);
-            }
-
-            // 2. CORS proxy fallback
-            const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(WEBHOOK_DATA);
-            const res2 = await fetch(proxyUrl, {
+            const res = await fetch(API_DATA, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', ...HEADER_DATA },
-                body: JSON.stringify(payload)
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({})
             });
-            if (!res2.ok) throw new Error('HTTP ' + res2.status);
-            return await res2.json();
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            return await res.json();
         }
 
         /* ─── PAGES ─────────────────────────────────────────────── */
@@ -1682,9 +1663,9 @@
             updateBadgesFromDOM();
 
             try {
-                await fetch(WEBHOOK_SETTER, {
+                await fetch(API_SETTER, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', ...HEADER_SETTER },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username })
                 });
                 showToast('✓ ' + username + ' déplacé vers Humain', 'success');

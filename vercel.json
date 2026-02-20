@@ -1,0 +1,12 @@
+{
+    "rewrites": [
+        {
+            "source": "/api/dashboard",
+            "destination": "/api/dashboard"
+        },
+        {
+            "source": "/api/setter",
+            "destination": "/api/setter"
+        }
+    ]
+}
