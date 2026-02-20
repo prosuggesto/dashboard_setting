@@ -1,0 +1,1892 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suggesto — Dashboard</title>
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <style>
+        /* ══════════════════════════════════════════════════════════════
+           RESET & DESIGN TOKENS — Suggesto Liquid Glass
+           Colors from logo: Cyan #00d2ff → Blue #3a7bd5 → Purple #a855f7
+        ══════════════════════════════════════════════════════════════ */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            /* Brand gradient */
+            --cyan: #00d2ff;
+            --blue: #3a7bd5;
+            --purple: #a855f7;
+            --magenta: #c084fc;
+            --grad: linear-gradient(135deg, var(--cyan) 0%, var(--blue) 45%, var(--purple) 100%);
+            --grad-soft: linear-gradient(135deg, rgba(0, 210, 255, 0.15), rgba(58, 123, 213, 0.10), rgba(168, 85, 247, 0.12));
+
+            /* Liquid glass */
+            --glass: rgba(255, 255, 255, 0.45);
+            --glass-strong: rgba(255, 255, 255, 0.65);
+            --glass-border: rgba(255, 255, 255, 0.55);
+            --glass-border-hover: rgba(255, 255, 255, 0.80);
+            --glass-blur: 24px;
+            --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+            --glass-shadow-hover: 0 12px 48px rgba(0, 0, 0, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+
+            /* Radii */
+            --r: 24px;
+            --r-sm: 16px;
+            --r-xs: 12px;
+
+            /* Typography */
+            --text: #0f172a;
+            --text-secondary: rgba(15, 23, 42, 0.55);
+            --text-tertiary: rgba(15, 23, 42, 0.32);
+
+            /* Semantic */
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+
+            /* Surface */
+            --surface: #f0f2f5;
+        }
+
+        html,
+        body {
+            height: 100%;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: var(--text);
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        body {
+            background: var(--surface);
+        }
+
+        /* ── ANIMATED AMBIENT BG ──────────────────────────────────── */
+        .ambient {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .ambient::before {
+            content: '';
+            position: absolute;
+            width: 900px;
+            height: 900px;
+            border-radius: 50%;
+            top: -20%;
+            left: -10%;
+            background: radial-gradient(circle, rgba(0, 210, 255, 0.18) 0%, transparent 65%);
+            animation: ambFloat1 18s ease-in-out infinite;
+        }
+
+        .ambient::after {
+            content: '';
+            position: absolute;
+            width: 800px;
+            height: 800px;
+            border-radius: 50%;
+            bottom: -15%;
+            right: -5%;
+            background: radial-gradient(circle, rgba(168, 85, 247, 0.14) 0%, transparent 65%);
+            animation: ambFloat2 22s ease-in-out infinite;
+        }
+
+        .ambient-mid {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            top: 30%;
+            left: 40%;
+            background: radial-gradient(circle, rgba(58, 123, 213, 0.08) 0%, transparent 65%);
+            animation: ambFloat3 20s ease-in-out infinite;
+        }
+
+        @keyframes ambFloat1 {
+
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            50% {
+                transform: translate(60px, 40px) scale(1.08);
+            }
+        }
+
+        @keyframes ambFloat2 {
+
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            50% {
+                transform: translate(-50px, -30px) scale(1.05);
+            }
+        }
+
+        @keyframes ambFloat3 {
+
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            50% {
+                transform: translate(-30px, 50px) scale(1.1);
+            }
+        }
+
+        /* ── GLASS MIXIN ──────────────────────────────────────────── */
+        .glass {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--glass-shadow);
+            backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+            -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+            border-radius: var(--r);
+        }
+
+        /* ── PAGE SYSTEM ──────────────────────────────────────────── */
+        .page {
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
+            display: none;
+        }
+
+        .page.active {
+            display: flex;
+        }
+
+        /* ══════════════════════════════════════════════════════════════
+           PAGE 1 — LOGIN
+        ══════════════════════════════════════════════════════════════ */
+        #page-login {
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .login-card {
+            width: 420px;
+            max-width: 92vw;
+            padding: 52px 44px 44px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 28px;
+            animation: slideUp .7s cubic-bezier(.22, .68, 0, 1.1) both;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(48px) scale(.96);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .login-logo {
+            width: 120px;
+            height: auto;
+            filter: drop-shadow(0 8px 24px rgba(0, 210, 255, 0.20));
+            animation: logoPulse 3s ease-in-out infinite;
+        }
+
+        @keyframes logoPulse {
+
+            0%,
+            100% {
+                filter: drop-shadow(0 8px 24px rgba(0, 210, 255, 0.20));
+            }
+
+            50% {
+                filter: drop-shadow(0 8px 32px rgba(168, 85, 247, 0.25));
+            }
+        }
+
+        .login-title {
+            font-size: 1.3rem;
+            font-weight: 800;
+            letter-spacing: -.01em;
+            background: var(--grad);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .login-sub {
+            font-size: .82rem;
+            color: var(--text-secondary);
+            text-align: center;
+            margin-top: -14px;
+            letter-spacing: .02em;
+        }
+
+        /* OTP */
+        .otp-wrap {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .otp-input {
+            width: 50px;
+            height: 58px;
+            background: rgba(255, 255, 255, 0.65);
+            border: 1.5px solid rgba(0, 0, 0, 0.06);
+            border-radius: var(--r-xs);
+            color: var(--text);
+            font-family: inherit;
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-align: center;
+            outline: none;
+            transition: all .25s cubic-bezier(.4, 0, .2, 1);
+        }
+
+        .otp-input:focus {
+            border-color: var(--blue);
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 0 0 4px rgba(58, 123, 213, 0.12), 0 4px 16px rgba(58, 123, 213, 0.08);
+            transform: translateY(-2px);
+        }
+
+        .otp-input.filled {
+            border-color: rgba(58, 123, 213, 0.35);
+            background: rgba(255, 255, 255, 0.85);
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: var(--r-sm);
+            background: var(--grad);
+            color: #fff;
+            font-family: inherit;
+            font-size: .9rem;
+            font-weight: 700;
+            letter-spacing: .03em;
+            cursor: pointer;
+            transition: all .25s ease;
+            box-shadow: 0 6px 20px rgba(0, 210, 255, 0.20), 0 2px 8px rgba(168, 85, 247, 0.12);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), transparent);
+            opacity: 0;
+            transition: opacity .3s;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 28px rgba(0, 210, 255, 0.30), 0 4px 12px rgba(168, 85, 247, 0.18);
+        }
+
+        .btn-primary:hover::before {
+            opacity: 1;
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary:disabled {
+            opacity: .5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .login-msg {
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: var(--r-xs);
+            font-size: .8rem;
+            text-align: center;
+            display: none;
+        }
+
+        .login-msg.error {
+            background: rgba(239, 68, 68, .08);
+            border: 1px solid rgba(239, 68, 68, .18);
+            color: #dc2626;
+            animation: shake .35s ease both;
+        }
+
+        .login-msg.info {
+            background: rgba(58, 123, 213, .06);
+            border: 1px solid rgba(58, 123, 213, .18);
+            color: var(--blue);
+        }
+
+        .login-msg.visible {
+            display: block;
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0)
+            }
+
+            20%,
+            60% {
+                transform: translateX(-5px)
+            }
+
+            40%,
+            80% {
+                transform: translateX(5px)
+            }
+        }
+
+        .loader-row {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            padding: 4px;
+        }
+
+        .loader-row.visible {
+            display: flex;
+        }
+
+        .spin {
+            width: 22px;
+            height: 22px;
+            border: 2.5px solid rgba(0, 0, 0, .06);
+            border-top-color: var(--blue);
+            border-radius: 50%;
+            animation: spin .65s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* ══════════════════════════════════════════════════════════════
+           PAGE 2 — DASHBOARD
+        ══════════════════════════════════════════════════════════════ */
+        #page-dashboard {
+            flex-direction: column;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        /* ── HEADER ── */
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 32px;
+            background: rgba(255, 255, 255, 0.60);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+            backdrop-filter: blur(28px) saturate(150%);
+            -webkit-backdrop-filter: blur(28px) saturate(150%);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-logo {
+            height: 40px;
+            border-radius: 10px;
+        }
+
+        .header-brand {
+            font-size: .85rem;
+            font-weight: 800;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            background: var(--grad);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-ghost {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            border-radius: var(--r-xs);
+            color: var(--text-secondary);
+            font-family: inherit;
+            font-size: .78rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all .2s ease;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        .btn-ghost:hover {
+            background: rgba(255, 255, 255, 0.8);
+            color: var(--text);
+            border-color: rgba(0, 0, 0, 0.12);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            transform: translateY(-1px);
+        }
+
+        .btn-ghost svg {
+            width: 14px;
+            height: 14px;
+            flex-shrink: 0;
+        }
+
+        .btn-ghost.danger:hover {
+            background: rgba(239, 68, 68, .06);
+            border-color: rgba(239, 68, 68, .18);
+            color: #dc2626;
+        }
+
+        /* ── KPIs ── */
+        .kpi-section {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            padding: 28px 32px 0;
+        }
+
+        .kpi-card {
+            padding: 24px 22px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            transition: all .3s cubic-bezier(.4, 0, .2, 1);
+            cursor: default;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            border-radius: var(--r) var(--r) 0 0;
+            opacity: 0;
+            transition: opacity .3s;
+        }
+
+        .kpi-card:nth-child(1)::before {
+            background: var(--grad);
+        }
+
+        .kpi-card:nth-child(2)::before {
+            background: linear-gradient(90deg, var(--success), #34d399);
+        }
+
+        .kpi-card:nth-child(3)::before {
+            background: linear-gradient(90deg, var(--blue), var(--purple));
+        }
+
+        .kpi-card:nth-child(4)::before {
+            background: linear-gradient(90deg, #f87171, var(--danger));
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--glass-shadow-hover);
+        }
+
+        .kpi-card:hover::before {
+            opacity: 1;
+        }
+
+        .kpi-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .kpi-label {
+            font-size: .68rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .1em;
+            color: var(--text-secondary);
+        }
+
+
+
+        .kpi-val {
+            font-size: 2.4rem;
+            font-weight: 900;
+            line-height: 1;
+            color: var(--text);
+            letter-spacing: -.02em;
+        }
+
+        .kpi-sub {
+            font-size: .7rem;
+            color: var(--text-tertiary);
+        }
+
+        /* ── COLUMNS ── */
+        .col-section {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            padding: 22px 32px 40px;
+            flex: 1;
+            align-items: start;
+        }
+
+        .col {
+            display: flex;
+            flex-direction: column;
+            min-height: 320px;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--glass-shadow);
+            backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+            -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+            border-radius: var(--r);
+            overflow: hidden;
+        }
+
+        .col-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 20px 14px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+        }
+
+        .col-title-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .col-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .col-a .col-dot {
+            background: var(--success);
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.45);
+        }
+
+        .col-b .col-dot {
+            background: var(--blue);
+            box-shadow: 0 0 8px rgba(58, 123, 213, 0.45);
+        }
+
+        .col-c .col-dot {
+            background: var(--danger);
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.40);
+        }
+
+        .col-title {
+            font-size: .72rem;
+            font-weight: 700;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+        }
+
+        .col-badge {
+            min-width: 24px;
+            height: 24px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: .7rem;
+            font-weight: 700;
+            background: rgba(0, 0, 0, 0.04);
+            color: var(--text-secondary);
+            padding: 0 7px;
+        }
+
+        .col-body {
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-height: 80px;
+            flex: 1;
+            transition: background .25s;
+        }
+
+        .col-body.drag-over {
+            background: rgba(58, 123, 213, 0.05);
+        }
+
+        /* ── LEAD CARDS ── */
+        .lead-card {
+            padding: 16px 18px;
+            border-radius: var(--r-sm);
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+            transition: all .3s cubic-bezier(.4, 0, .2, 1);
+            animation: cardIn .4s ease both;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .lead-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--grad);
+            opacity: 0;
+            transition: opacity .3s;
+        }
+
+        .lead-card:hover {
+            background: rgba(255, 255, 255, 0.9);
+            border-color: rgba(58, 123, 213, 0.2);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.07), 0 0 0 1px rgba(58, 123, 213, 0.08);
+        }
+
+        .lead-card:hover::before {
+            opacity: 1;
+        }
+
+        .lead-card.draggable {
+            cursor: grab;
+        }
+
+        .lead-card.dragging {
+            opacity: .4;
+            transform: scale(.96);
+            cursor: grabbing;
+        }
+
+        @keyframes cardIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .lead-card-top {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .lead-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: .72rem;
+            font-weight: 800;
+            color: #fff;
+            letter-spacing: .04em;
+            flex-shrink: 0;
+        }
+
+        .lead-avatar.type-ia {
+            background: linear-gradient(135deg, var(--success), #34d399);
+        }
+
+        .lead-avatar.type-humain {
+            background: linear-gradient(135deg, var(--blue), var(--purple));
+        }
+
+        .lead-avatar.type-non {
+            background: linear-gradient(135deg, #f87171, var(--danger));
+        }
+
+        .lead-card-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .lead-name {
+            font-size: .84rem;
+            font-weight: 700;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .lead-status-line {
+            font-size: .66rem;
+            font-weight: 500;
+            color: var(--text-tertiary);
+            margin-top: 2px;
+        }
+
+        .lead-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 10px;
+        }
+
+        .lead-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: .64rem;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 8px;
+        }
+
+        .lead-badge.rdv {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(16, 185, 129, 0.04));
+            border: 1px solid rgba(16, 185, 129, 0.15);
+            color: #059669;
+        }
+
+        .lead-badge.obj {
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.08), rgba(168, 85, 247, 0.04));
+            border: 1px solid rgba(168, 85, 247, 0.15);
+            color: var(--purple);
+        }
+
+        .lead-badge.score-badge {
+            background: linear-gradient(135deg, rgba(58, 123, 213, 0.08), rgba(58, 123, 213, 0.04));
+            border: 1px solid rgba(58, 123, 213, 0.15);
+            color: var(--blue);
+        }
+
+        .drag-hint {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: .64rem;
+            color: var(--text-tertiary);
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(0, 0, 0, 0.04);
+        }
+
+        .drag-hint svg {
+            width: 10px;
+            height: 10px;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            padding: 40px 20px;
+            color: var(--text-tertiary);
+            font-size: .78rem;
+            text-align: center;
+        }
+
+        .empty-icon {
+            font-size: 1.4rem;
+            opacity: .3;
+        }
+
+        /* ══════════════════════════════════════════════════════════════
+           MODAL
+        ══════════════════════════════════════════════════════════════ */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 300;
+            background: rgba(15, 23, 42, 0.18);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+            animation: fadeIn .25s ease both;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .modal {
+            width: 540px;
+            max-width: 100%;
+            max-height: 85vh;
+            background: rgba(255, 255, 255, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.75);
+            border-radius: 28px;
+            box-shadow: 0 32px 80px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(40px) saturate(160%);
+            -webkit-backdrop-filter: blur(40px) saturate(160%);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            animation: modalIn .35s cubic-bezier(.22, .68, 0, 1.1) both;
+        }
+
+        @keyframes modalIn {
+            from {
+                opacity: 0;
+                transform: scale(.94) translateY(24px);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 26px 28px 18px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .modal-header-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .modal-avatar {
+            width: 46px;
+            height: 46px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .modal-avatar.type-ia {
+            background: linear-gradient(135deg, #10b981, #34d399);
+        }
+
+        .modal-avatar.type-humain {
+            background: var(--grad);
+        }
+
+        .modal-avatar.type-non {
+            background: linear-gradient(135deg, #ef4444, #f87171);
+        }
+
+        .modal-header-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .modal-header-name {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .modal-header-status {
+            font-size: .7rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+        }
+
+        .status-dot.ia {
+            background: var(--success);
+        }
+
+        .status-dot.humain {
+            background: var(--blue);
+        }
+
+        .status-dot.non {
+            background: var(--danger);
+        }
+
+        .modal-close {
+            width: 34px;
+            height: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.04);
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            border-radius: 11px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all .2s;
+        }
+
+        .modal-close:hover {
+            background: rgba(0, 0, 0, 0.08);
+            color: var(--text);
+            transform: scale(1.05);
+        }
+
+        .modal-close svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        .modal-body {
+            padding: 22px 28px 28px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .info-section-title {
+            font-size: .64rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .12em;
+            color: var(--text-tertiary);
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .info-item {
+            padding: 12px 14px;
+            background: rgba(0, 0, 0, 0.02);
+            border: 1px solid rgba(0, 0, 0, 0.04);
+            border-radius: var(--r-sm);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .info-item.full {
+            grid-column: 1 / -1;
+        }
+
+        .info-item-key {
+            font-size: .64rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: var(--text-tertiary);
+        }
+
+        .info-item-val {
+            font-size: .84rem;
+            font-weight: 500;
+            color: var(--text);
+            word-break: break-word;
+        }
+
+        .json-block {
+            padding: 14px;
+            background: rgba(15, 23, 42, 0.03);
+            border: 1px solid rgba(0, 0, 0, 0.04);
+            border-radius: var(--r-sm);
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: .72rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            white-space: pre-wrap;
+            overflow-x: auto;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        /* ── FORMATTED TEXT BLOCKS (modal) ── */
+        .info-block {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .info-block-card {
+            padding: 14px 16px;
+            background: rgba(255, 255, 255, 0.55);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            border-radius: var(--r-sm);
+            border-left: 3px solid var(--blue);
+        }
+
+        .info-block-card.objection-card {
+            border-left-color: var(--purple);
+        }
+
+        .info-block-label {
+            font-size: .66rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: var(--blue);
+            margin-bottom: 6px;
+        }
+
+        .objection-card .info-block-label {
+            color: var(--purple);
+        }
+
+        .info-block-text {
+            font-size: .82rem;
+            line-height: 1.6;
+            color: var(--text);
+            white-space: pre-wrap;
+        }
+
+        .qa-block {
+            margin-top: 8px;
+        }
+
+        .qa-label {
+            font-size: .68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            margin-bottom: 3px;
+        }
+
+        .qa-label.q {
+            color: var(--danger);
+        }
+
+        .qa-label.a {
+            color: var(--success);
+        }
+
+        .qa-text {
+            font-size: .82rem;
+            line-height: 1.6;
+            color: var(--text);
+            white-space: pre-wrap;
+        }
+
+        .rdv-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 12px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(16, 185, 129, 0.04));
+            border: 1px solid rgba(16, 185, 129, 0.18);
+            color: #059669;
+            font-size: .78rem;
+            font-weight: 600;
+            margin-top: 6px;
+        }
+
+        /* ── TOAST ── */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            padding: 11px 22px;
+            border-radius: var(--r-sm);
+            font-size: .8rem;
+            font-weight: 500;
+            opacity: 0;
+            transition: all .3s ease;
+            pointer-events: none;
+            z-index: 500;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .toast.success {
+            background: rgba(16, 185, 129, 0.12);
+            border: 1px solid rgba(16, 185, 129, 0.22);
+            color: #059669;
+        }
+
+        .toast.error {
+            background: rgba(239, 68, 68, 0.10);
+            border: 1px solid rgba(239, 68, 68, 0.18);
+            color: #dc2626;
+        }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 900px) {
+            .kpi-section {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .col-section {
+                grid-template-columns: 1fr;
+            }
+
+            .header {
+                padding: 12px 16px;
+            }
+
+            .kpi-section,
+            .col-section {
+                padding-left: 16px;
+                padding-right: 16px;
+            }
+        }
+
+        @media (max-width: 500px) {
+            .kpi-section {
+                grid-template-columns: 1fr;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .login-card {
+                padding: 36px 24px 32px;
+            }
+
+            .otp-input {
+                width: 42px;
+                height: 50px;
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- AMBIENT BG -->
+    <div class="ambient">
+        <div class="ambient-mid"></div>
+    </div>
+
+    <!-- ═══════════════════════════════════
+       PAGE 1 — LOGIN
+    ═══════════════════════════════════ -->
+    <section class="page active" id="page-login">
+        <div class="login-card glass">
+            <img src="logo.png" alt="Suggesto" class="login-logo" id="login-logo-img">
+            <div class="login-title">Accès sécurisé</div>
+            <div class="login-sub">Entrez votre code d'accès à 6 chiffres</div>
+
+            <div class="otp-wrap">
+                <input class="otp-input" id="d0" type="text" inputmode="numeric" maxlength="1" autocomplete="off">
+                <input class="otp-input" id="d1" type="text" inputmode="numeric" maxlength="1" autocomplete="off">
+                <input class="otp-input" id="d2" type="text" inputmode="numeric" maxlength="1" autocomplete="off">
+                <input class="otp-input" id="d3" type="text" inputmode="numeric" maxlength="1" autocomplete="off">
+                <input class="otp-input" id="d4" type="text" inputmode="numeric" maxlength="1" autocomplete="off">
+                <input class="otp-input" id="d5" type="text" inputmode="numeric" maxlength="1" autocomplete="off">
+            </div>
+
+            <div class="login-msg" id="login-msg"></div>
+
+            <button class="btn-primary" id="btn-login" onclick="doLogin()">Se connecter</button>
+
+            <div class="loader-row" id="loader-row">
+                <div class="spin"></div>
+                <span style="font-size:.82rem;color:var(--text-secondary)">Connexion en cours…</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════
+       PAGE 2 — DASHBOARD
+    ═══════════════════════════════════ -->
+    <section class="page" id="page-dashboard">
+
+        <header class="header">
+            <div class="header-left">
+                <img src="logo.png" alt="Suggesto" class="header-logo" id="header-logo-img">
+                <span class="header-brand">Dashboard Setting</span>
+            </div>
+            <div class="header-right">
+                <button class="btn-ghost" id="btn-refresh" onclick="refreshData()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                        <path d="M21 3v5h-5" />
+                        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+                        <path d="M8 16H3v5" />
+                    </svg>
+                    Rafraîchir
+                </button>
+                <button class="btn-ghost danger" onclick="doLogout()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                        <polyline points="16 17 21 12 16 7" />
+                        <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>
+                    Déconnexion
+                </button>
+            </div>
+        </header>
+
+        <div class="kpi-section">
+            <div class="kpi-card glass">
+                <div class="kpi-top">
+                    <span class="kpi-label">Total Leads</span>
+                </div>
+                <div class="kpi-val" id="kpi-total">—</div>
+                <div class="kpi-sub">tous les prospects</div>
+            </div>
+            <div class="kpi-card glass">
+                <div class="kpi-top">
+                    <span class="kpi-label">Converti IA</span>
+                </div>
+                <div class="kpi-val" id="kpi-ia">—</div>
+                <div class="kpi-sub">par intelligence artificielle</div>
+            </div>
+            <div class="kpi-card glass">
+                <div class="kpi-top">
+                    <span class="kpi-label">Converti Humain</span>
+                </div>
+                <div class="kpi-val" id="kpi-human">—</div>
+                <div class="kpi-sub">par setter humain</div>
+            </div>
+            <div class="kpi-card glass">
+                <div class="kpi-top">
+                    <span class="kpi-label">Non Converti</span>
+                </div>
+                <div class="kpi-val" id="kpi-nc">—</div>
+                <div class="kpi-sub">en attente de traitement</div>
+            </div>
+        </div>
+
+        <div class="col-section">
+            <div class="col col-a">
+                <div class="col-head">
+                    <div class="col-title-wrap">
+                        <div class="col-dot"></div><span class="col-title">Converti IA</span>
+                    </div>
+                    <span class="col-badge" id="badge-ia">0</span>
+                </div>
+                <div class="col-body" id="body-ia"></div>
+            </div>
+            <div class="col col-b">
+                <div class="col-head">
+                    <div class="col-title-wrap">
+                        <div class="col-dot"></div><span class="col-title">Converti Humain</span>
+                    </div>
+                    <span class="col-badge" id="badge-humain">0</span>
+                </div>
+                <div class="col-body" id="body-humain" ondragover="onDragOver(event,'body-humain')"
+                    ondragleave="onDragLeave(event,'body-humain')" ondrop="onDrop(event,'body-humain')">
+                </div>
+            </div>
+            <div class="col col-c">
+                <div class="col-head">
+                    <div class="col-title-wrap">
+                        <div class="col-dot"></div><span class="col-title">Non Converti</span>
+                    </div>
+                    <span class="col-badge" id="badge-nc">0</span>
+                </div>
+                <div class="col-body" id="body-nc"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════
+       MODAL
+    ═══════════════════════════════════ -->
+    <div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+        <div class="modal" id="modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div class="modal-header-left">
+                    <div class="modal-avatar" id="modal-avatar"></div>
+                    <div class="modal-header-info">
+                        <div class="modal-header-name" id="modal-name">Lead</div>
+                        <div class="modal-header-status" id="modal-status"></div>
+                    </div>
+                </div>
+                <button class="modal-close" onclick="closeModal(null)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body" id="modal-body"></div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <!-- ═══════════════════════════════════ JAVASCRIPT ═══════════════════════════════════ -->
+    <script>
+        /* ─── Config ────────────────────────────────────────────── */
+        const CODE = '070523';
+        const WEBHOOK_DATA = 'https://n8n.srv862127.hstgr.cloud/webhook/dashboard';
+        const WEBHOOK_SETTER = 'https://n8n.srv862127.hstgr.cloud/webhook/dashboard_lead_setter_humain';
+        const HEADER_DATA = { 'dashboard.01': 'dashboard.setting.01' };
+        const HEADER_SETTER = { 'setter.humain': 'update.lead.setter.01' };
+
+        /* ─── State ─────────────────────────────────────────────── */
+        let allData = null;
+        let draggedCard = null;
+        let draggedLead = null;
+
+        /* ─── OTP ───────────────────────────────────────────────── */
+        const digits = Array.from({ length: 6 }, (_, i) => document.getElementById('d' + i));
+
+        digits.forEach((inp, i) => {
+            inp.addEventListener('input', e => {
+                const v = e.target.value.replace(/\D/g, '');
+                inp.value = v.slice(-1);
+                inp.classList.toggle('filled', inp.value !== '');
+                if (v && i < 5) digits[i + 1].focus();
+                if (getOTP().length === 6) setTimeout(doLogin, 80);
+            });
+            inp.addEventListener('keydown', e => {
+                if (e.key === 'Backspace' && !inp.value && i > 0) {
+                    digits[i - 1].value = '';
+                    digits[i - 1].classList.remove('filled');
+                    digits[i - 1].focus();
+                }
+            });
+            inp.addEventListener('paste', e => {
+                e.preventDefault();
+                const pasted = (e.clipboardData.getData('text') || '').replace(/\D/g, '').slice(0, 6);
+                pasted.split('').forEach((ch, j) => {
+                    if (digits[j]) { digits[j].value = ch; digits[j].classList.add('filled'); }
+                });
+                if (pasted.length > 0) digits[Math.min(pasted.length, 5)].focus();
+                if (pasted.length === 6) setTimeout(doLogin, 80);
+            });
+        });
+
+        function getOTP() { return digits.map(d => d.value).join(''); }
+        function clearOTP() { digits.forEach(d => { d.value = ''; d.classList.remove('filled'); }); }
+
+        /* ─── LOGIN ─────────────────────────────────────────────── */
+        function showMsg(text, type = 'error') {
+            const el = document.getElementById('login-msg');
+            el.className = 'login-msg ' + type + ' visible';
+            el.textContent = text;
+        }
+        function hideMsg() { document.getElementById('login-msg').classList.remove('visible'); }
+
+        async function doLogin() {
+            const code = getOTP();
+            if (code.length < 6) { showMsg('Veuillez entrer les 6 chiffres.'); return; }
+            if (code !== CODE) { showMsg('Code incorrect.'); clearOTP(); digits[0].focus(); return; }
+
+            hideMsg();
+            setLoading(true);
+
+            try {
+                const data = await fetchDashboardData();
+                allData = data;
+                renderDashboard(data);
+                sessionStorage.setItem('dash_logged', '1');
+                switchPage('dashboard');
+            } catch (err) {
+                showMsg('Erreur de connexion : ' + (err.message || 'Webhook inaccessible.'));
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        function setLoading(on) {
+            document.getElementById('btn-login').style.display = on ? 'none' : '';
+            document.getElementById('loader-row').classList.toggle('visible', on);
+            digits.forEach(d => d.disabled = on);
+        }
+
+        /* ─── WEBHOOK ───────────────────────────────────────────── */
+        async function fetchDashboardData() {
+            const payload = { auth_key: 'dashboard.01', auth_value: 'dashboard.setting.01' };
+
+            // 1. Direct POST
+            try {
+                const res = await fetch(WEBHOOK_DATA, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', ...HEADER_DATA },
+                    body: JSON.stringify(payload)
+                });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                return await res.json();
+            } catch (directErr) {
+                console.warn('Direct fetch failed, trying CORS proxy…', directErr);
+            }
+
+            // 2. CORS proxy fallback
+            const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(WEBHOOK_DATA);
+            const res2 = await fetch(proxyUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...HEADER_DATA },
+                body: JSON.stringify(payload)
+            });
+            if (!res2.ok) throw new Error('HTTP ' + res2.status);
+            return await res2.json();
+        }
+
+        /* ─── PAGES ─────────────────────────────────────────────── */
+        function switchPage(page) {
+            document.getElementById('page-login').classList.remove('active');
+            document.getElementById('page-dashboard').classList.remove('active');
+            document.getElementById('page-' + page).classList.add('active');
+        }
+
+        function doLogout() {
+            sessionStorage.removeItem('dash_logged');
+            switchPage('login'); clearOTP(); hideMsg();
+            setLoading(false); digits[0].focus();
+            allData = null; clearColumns();
+        }
+
+        /* ─── RENDERING ─────────────────────────────────────────── */
+        function renderDashboard(data) {
+            let iaLeads = [];
+            let humanLeads = [];
+            let ncLeads = [];
+
+            const root = Array.isArray(data) ? data[0] : data;
+            if (!root) return;
+
+            // Collect ALL leads from every known array key
+            const iaKeys = ['rdv_check', 'rendez_vous_confirmes', 'converti_ia', 'leads_converti_ia'];
+            const otherKeys = ['no_rdv', 'sans_rendez_vous', 'sans_rdv', 'leads_non_converti', 'non_converti',
+                'leads_converti_humain', 'converti_humain', 'humain', 'setter_humain'];
+
+            // Helper: sort a single lead — lead_converti_humain:"oui" ALWAYS goes to Humain
+            function sortLead(lead, isFromIA) {
+                const val = (lead.lead_converti_humain || '').toString().toLowerCase().trim();
+                if (val === 'oui' || val === 'yes' || val === 'true' || val === '1') {
+                    humanLeads.push(lead);
+                } else if (isFromIA) {
+                    iaLeads.push(lead);
+                } else {
+                    ncLeads.push(lead);
+                }
+            }
+
+            // Process IA arrays
+            iaKeys.forEach(key => {
+                if (root[key] && Array.isArray(root[key])) {
+                    root[key].forEach(lead => sortLead(lead, true));
+                }
+            });
+
+            // Process other arrays
+            otherKeys.forEach(key => {
+                if (root[key] && Array.isArray(root[key])) {
+                    root[key].forEach(lead => sortLead(lead, false));
+                }
+            });
+
+            const total = iaLeads.length + humanLeads.length + ncLeads.length;
+            document.getElementById('kpi-total').textContent = total;
+            document.getElementById('kpi-ia').textContent = iaLeads.length;
+            document.getElementById('kpi-human').textContent = humanLeads.length;
+            document.getElementById('kpi-nc').textContent = ncLeads.length;
+
+            buildColumn('body-ia', 'badge-ia', iaLeads, 'ia', false);
+            buildColumn('body-humain', 'badge-humain', humanLeads, 'humain', false);
+            buildColumn('body-nc', 'badge-nc', ncLeads, 'non', true);
+        }
+
+        function extractFallback(data, keys) {
+            for (const k of keys) {
+                if (data[k] && Array.isArray(data[k])) return data[k];
+            }
+            return [];
+        }
+
+        function clearColumns() {
+            ['body-ia', 'body-humain', 'body-nc'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = ''; });
+            ['badge-ia', 'badge-humain', 'badge-nc'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = '0'; });
+            ['kpi-total', 'kpi-ia', 'kpi-human', 'kpi-nc'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = '—'; });
+        }
+
+        function buildColumn(bodyId, badgeId, leads, colType, draggable) {
+            const body = document.getElementById(bodyId);
+            const badge = document.getElementById(badgeId);
+            body.innerHTML = '';
+            badge.textContent = leads.length;
+
+            if (!leads.length) {
+                body.innerHTML = `<div class="empty-state">
+                    <div class="empty-icon">—</div>
+                    <span>Aucun lead</span>
+                </div>`;
+                return;
+            }
+
+            leads.forEach((lead, idx) => {
+                const card = makeLeadCard(lead, colType, draggable);
+                card.style.animationDelay = (idx * 0.04) + 's';
+                body.appendChild(card);
+            });
+        }
+
+        function getUsername(lead) {
+            return lead.username || lead.Username || lead.name || lead.nom || lead.user || lead.id || '—';
+        }
+
+        function makeLeadCard(lead, colType, draggable) {
+            const card = document.createElement('div');
+            card.className = 'lead-card' + (draggable ? ' draggable' : '');
+            card.dataset.lead = JSON.stringify(lead);
+            card.dataset.type = colType;
+
+            const username = getUsername(lead);
+            const initials = username.substring(0, 2).toUpperCase();
+
+            // Extract RDV date from infos
+            const rdvDate = lead.infos ? extractRdvDate(lead.infos) : (lead.rdv || lead.date || null);
+            const rdvFormatted = rdvDate ? formatDate(rdvDate) : null;
+
+            // Count objections
+            const objCount = lead.objections ? (lead.objections.match(/objection \d+/gi) || []).length : 0;
+
+            // Status label
+            const statusLabels = { ia: 'Converti IA', humain: 'Converti Humain', non: 'Non converti' };
+
+            card.innerHTML = `
+                <div class="lead-card-top">
+                    <div class="lead-card-info">
+                        <div class="lead-name">@${username}</div>
+                        <div class="lead-status-line">${statusLabels[colType] || colType}</div>
+                    </div>
+                </div>
+                <div class="lead-badges">
+                    ${rdvFormatted ? `<span class="lead-badge rdv">📅 ${rdvFormatted}</span>` : ''}
+                    ${objCount > 0 ? `<span class="lead-badge obj">💬 ${objCount} objection${objCount > 1 ? 's' : ''}</span>` : ''}
+                    ${lead.score ? `<span class="lead-badge score-badge">⭐ ${lead.score}</span>` : ''}
+                </div>
+                ${draggable ? `<div class="drag-hint">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 10l5-5 5 5"/><path d="M7 14l5 5 5-5"/></svg>
+                    Glisser vers Humain
+                </div>` : ''}
+            `;
+
+            card.addEventListener('click', () => openModal(lead, colType));
+
+            if (draggable) {
+                card.draggable = true;
+                card.addEventListener('dragstart', e => {
+                    draggedCard = card; draggedLead = lead;
+                    setTimeout(() => card.classList.add('dragging'), 0);
+                    e.dataTransfer.effectAllowed = 'move';
+                });
+                card.addEventListener('dragend', () => { card.classList.remove('dragging'); draggedCard = null; });
+            }
+            return card;
+        }
+
+        /* ─── DRAG & DROP ───────────────────────────────────────── */
+        function onDragOver(e, bodyId) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            document.getElementById(bodyId).classList.add('drag-over');
+        }
+        function onDragLeave(e, bodyId) { document.getElementById(bodyId).classList.remove('drag-over'); }
+
+        async function onDrop(e, bodyId) {
+            e.preventDefault();
+            document.getElementById(bodyId).classList.remove('drag-over');
+            if (!draggedLead) return;
+
+            const lead = draggedLead;
+            const username = getUsername(lead);
+            draggedCard && draggedCard.remove();
+            draggedCard = null; draggedLead = null;
+
+            const body = document.getElementById(bodyId);
+            const empty = body.querySelector('.empty-state');
+            if (empty) empty.remove();
+
+            const newCard = makeLeadCard(lead, 'humain', false);
+            body.appendChild(newCard);
+            updateBadgesFromDOM();
+
+            try {
+                await fetch(WEBHOOK_SETTER, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', ...HEADER_SETTER },
+                    body: JSON.stringify({ username })
+                });
+                showToast('✓ ' + username + ' déplacé vers Humain', 'success');
+            } catch (err) {
+                showToast('Déplacé localement (webhook hors ligne)', 'error');
+            }
+        }
+
+        function updateBadgesFromDOM() {
+            const map = { 'body-ia': 'badge-ia', 'body-humain': 'badge-humain', 'body-nc': 'badge-nc' };
+            let total = 0;
+            for (const [bodyId, badgeId] of Object.entries(map)) {
+                const count = document.getElementById(bodyId).querySelectorAll('.lead-card').length;
+                document.getElementById(badgeId).textContent = count;
+                total += count;
+            }
+            document.getElementById('kpi-total').textContent = total;
+            document.getElementById('kpi-ia').textContent = document.getElementById('body-ia').querySelectorAll('.lead-card').length;
+            document.getElementById('kpi-human').textContent = document.getElementById('body-humain').querySelectorAll('.lead-card').length;
+            document.getElementById('kpi-nc').textContent = document.getElementById('body-nc').querySelectorAll('.lead-card').length;
+        }
+
+        /* ─── MODAL ─────────────────────────────────────────────── */
+        function openModal(lead, colType) {
+            const username = getUsername(lead);
+            const initials = username.substring(0, 2).toUpperCase();
+
+            const avatar = document.getElementById('modal-avatar');
+            avatar.className = 'modal-avatar type-' + colType;
+            avatar.textContent = initials;
+
+            document.getElementById('modal-name').textContent = '@' + username;
+
+            const typeLabels = { ia: 'Converti IA', humain: 'Converti Humain', non: 'Non Converti' };
+            document.getElementById('modal-status').innerHTML = `
+                <span class="status-dot ${colType}"></span>
+                ${typeLabels[colType] || colType}
+            `;
+
+            let html = '';
+
+            // ── Infos section ── 
+            if (lead.infos) {
+                html += `<div class="info-section-title">📋 Informations</div>`;
+                html += formatInfosText(lead.infos);
+            }
+
+            // ── Objections section ──
+            if (lead.objections) {
+                html += `<div class="info-section-title" style="margin-top:8px">💬 Objections</div>`;
+                html += formatObjectionsText(lead.objections);
+            }
+
+            // ── RDV info ──
+            const rdvDate = extractRdvDate(lead.infos || '');
+            if (rdvDate) {
+                html += `<div class="rdv-badge">📅 RDV : ${formatDate(rdvDate)}</div>`;
+            }
+
+
+
+
+            document.getElementById('modal-body').innerHTML = html;
+            document.getElementById('modal-overlay').classList.add('active');
+        }
+
+        /* ─── TEXT FORMATTERS ────────────────────────────────────── */
+        function formatInfosText(text) {
+            const blocks = text.split(/---/).map(b => b.trim()).filter(Boolean);
+            let html = '<div class="info-block">';
+            blocks.forEach(block => {
+                // Extract "info N :" label
+                const match = block.match(/^(info\s*\d+)\s*:\s*/i);
+                const label = match ? match[1] : null;
+                const content = match ? block.substring(match[0].length).trim() : block;
+
+                // Parse key:value pairs in the content
+                const formatted = formatKeyValues(content);
+
+                html += `<div class="info-block-card">`;
+                if (label) html += `<div class="info-block-label">${label.toUpperCase()}</div>`;
+                html += `<div class="info-block-text">${formatted}</div>`;
+                html += `</div>`;
+            });
+            html += '</div>';
+            return html;
+        }
+
+        function formatObjectionsText(text) {
+            const blocks = text.split(/---/).map(b => b.trim()).filter(Boolean);
+            let html = '<div class="info-block">';
+            blocks.forEach(block => {
+                const match = block.match(/^(objection\s*\d+)\s*:\s*/i);
+                const label = match ? match[1] : null;
+                const content = match ? block.substring(match[0].length).trim() : block;
+
+                html += `<div class="info-block-card objection-card">`;
+                if (label) html += `<div class="info-block-label">${label.toUpperCase()}</div>`;
+
+                // Parse Question: / Reponse: pairs
+                const qaParts = content.split(/\n(?=(?:Question|Reponse|Réponse)\s*:)/i);
+                qaParts.forEach(part => {
+                    const qMatch = part.match(/^Question\s*:\s*/i);
+                    const aMatch = part.match(/^(?:Reponse|Réponse)\s*:\s*/i);
+                    if (qMatch) {
+                        const qText = part.substring(qMatch[0].length).trim();
+                        html += `<div class="qa-block"><div class="qa-label q">❓ Question</div><div class="qa-text">${escapeHtml(qText)}</div></div>`;
+                    } else if (aMatch) {
+                        const aText = part.substring(aMatch[0].length).trim();
+                        html += `<div class="qa-block"><div class="qa-label a">✅ Réponse</div><div class="qa-text">${escapeHtml(aText)}</div></div>`;
+                    } else {
+                        html += `<div class="info-block-text">${escapeHtml(part.trim())}</div>`;
+                    }
+                });
+
+                html += `</div>`;
+            });
+            html += '</div>';
+            return html;
+        }
+
+        function formatKeyValues(text) {
+            // Parse lines like "job : value" or "Niveau ia : value"
+            return escapeHtml(text).replace(/\n/g, '<br>');
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        function extractRdvDate(text) {
+            const match = text.match(/(\d{4}-\d{2}-\d{2}T[\d:+]+)/i);
+            return match ? match[1] : null;
+        }
+
+        function formatDate(isoStr) {
+            try {
+                const d = new Date(isoStr);
+                return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) + ' à ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+            } catch { return isoStr; }
+        }
+
+        function formatKey(key) { return key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()); }
+
+        function closeModal(e) {
+            if (e && e.target !== document.getElementById('modal-overlay')) return;
+            document.getElementById('modal-overlay').classList.remove('active');
+        }
+
+        /* ─── REFRESH ───────────────────────────────────────────── */
+        async function refreshData() {
+            const btn = document.getElementById('btn-refresh');
+            btn.disabled = true;
+            btn.innerHTML = `<div class="spin" style="width:14px;height:14px"></div> Chargement…`;
+            try {
+                const data = await fetchDashboardData();
+                allData = data;
+                renderDashboard(data);
+                showToast('✓ Données mises à jour', 'success');
+            } catch (err) {
+                showToast('Erreur de chargement', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg> Rafraîchir`;
+            }
+        }
+
+        /* ─── TOAST ─────────────────────────────────────────────── */
+        let toastTimer = null;
+        function showToast(msg, type = 'success') {
+            clearTimeout(toastTimer);
+            const t = document.getElementById('toast');
+            t.className = 'toast show ' + type;
+            t.textContent = msg;
+            toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+        }
+
+        /* ─── KEYBOARD ──────────────────────────────────────────── */
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') closeModal(null);
+            if (e.key === 'Enter' && document.getElementById('page-login').classList.contains('active')) doLogin();
+        });
+
+        /* ─── INIT ────────────────────────────────────────────── */
+        window.addEventListener('load', async () => {
+            if (sessionStorage.getItem('dash_logged') === '1') {
+                // Auto-reconnect: fetch fresh data and go to dashboard
+                try {
+                    const data = await fetchDashboardData();
+                    allData = data;
+                    renderDashboard(data);
+                    switchPage('dashboard');
+                } catch (err) {
+                    // If fetch fails, show login
+                    sessionStorage.removeItem('dash_logged');
+                    digits[0].focus();
+                }
+            } else {
+                digits[0].focus();
+            }
+        });
+    </script>
+</body>
+
+</html>
