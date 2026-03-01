@@ -660,8 +660,28 @@
             flex-direction: column;
             gap: 8px;
             min-height: 80px;
-            flex: 1;
+            max-height: 320px;
+            overflow-y: auto;
+            scroll-snap-type: y mandatory;
+            scroll-behavior: smooth;
             transition: background .25s;
+        }
+
+        .col-body::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .col-body::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .col-body::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.10);
+            border-radius: 10px;
+        }
+
+        .col-body::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 0, 0, 0.20);
         }
 
         .col-body.drag-over {
@@ -682,6 +702,7 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
             position: relative;
             overflow: hidden;
+            scroll-snap-align: start;
         }
 
         .lead-card::before {
