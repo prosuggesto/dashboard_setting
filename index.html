@@ -817,6 +817,25 @@
             color: var(--blue);
         }
 
+        .lead-subtitle {
+            font-size: .68rem;
+            font-weight: 500;
+            color: var(--text-tertiary);
+            margin-top: 1px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .lead-fullname {
+            font-size: .84rem;
+            font-weight: 700;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
         .drag-hint {
             display: flex;
             align-items: center;
@@ -1155,6 +1174,100 @@
             color: #059669;
             font-size: .78rem;
             font-weight: 600;
+            margin-top: 6px;
+        }
+
+        .rdv-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .rdv-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            background: rgba(16, 185, 129, 0.04);
+            border: 1px solid rgba(16, 185, 129, 0.12);
+            border-radius: var(--r-xs);
+        }
+
+        .rdv-item-date {
+            font-size: .82rem;
+            font-weight: 600;
+            color: #059669;
+        }
+
+        .rdv-item-type {
+            font-size: .68rem;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 6px;
+            background: rgba(58, 123, 213, 0.08);
+            border: 1px solid rgba(58, 123, 213, 0.15);
+            color: var(--blue);
+            text-transform: uppercase;
+            letter-spacing: .04em;
+        }
+
+        .mail-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .mail-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            border-radius: 10px;
+            background: rgba(58, 123, 213, 0.05);
+            border: 1px solid rgba(58, 123, 213, 0.12);
+            color: var(--blue);
+            font-size: .8rem;
+            font-weight: 500;
+            word-break: break-all;
+        }
+
+        .identity-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .identity-item {
+            padding: 10px 14px;
+            background: rgba(0, 0, 0, 0.02);
+            border: 1px solid rgba(0, 0, 0, 0.04);
+            border-radius: var(--r-xs);
+        }
+
+        .identity-item-key {
+            font-size: .62rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: var(--text-tertiary);
+            margin-bottom: 3px;
+        }
+
+        .identity-item-val {
+            font-size: .84rem;
+            font-weight: 600;
+            color: var(--text);
+            word-break: break-word;
+        }
+
+        .modal-section-title {
+            font-size: .64rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .12em;
+            color: var(--text-tertiary);
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.04);
             margin-top: 6px;
         }
 
@@ -1497,13 +1610,75 @@
         }
 
         /* ─── RENDERING ─────────────────────────────────────────── */
+        /* ─── MULTI-VALUE PARSING ────────────────────────────────── */
+        function parseMultiField(text) {
+            if (!text) return [];
+            // Split on " ---- "
+            const segments = text.split(/\s*----\s*/);
+            return segments.map(seg => {
+                // Remove prefix like "mail 1 :" or "date RDV 1 :" or "type de rdv 1 :"
+                const m = seg.match(/^[^:]+:\s*(.*)$/s);
+                return m ? m[1].trim() : seg.trim();
+            }).filter(Boolean);
+        }
+
+        function extractAllRdvDates(lead) {
+            // Primary: from the "date rdv" field
+            if (lead['date rdv']) {
+                const parsed = parseMultiField(lead['date rdv']);
+                // Each value may itself contain nested "date RDV1 :" patterns, extract ISO dates
+                const dates = [];
+                parsed.forEach(val => {
+                    // Extract all ISO dates from the value
+                    const isoMatches = val.match(/(\d{4}-\d{2}-\d{2}T[\d:+]+)/g);
+                    if (isoMatches) {
+                        isoMatches.forEach(d => { if (!dates.includes(d)) dates.push(d); });
+                    }
+                });
+                if (dates.length > 0) return dates;
+            }
+            // Fallback: extract from infos text
+            if (lead.infos) {
+                const matches = lead.infos.match(/(\d{4}-\d{2}-\d{2}T[\d:+]+)/g);
+                if (matches) {
+                    const unique = [...new Set(matches)];
+                    return unique;
+                }
+            }
+            // Fallback: single rdv/date field
+            if (lead.rdv || lead.date) return [lead.rdv || lead.date];
+            return [];
+        }
+
+        function extractAllRdvTypes(lead) {
+            if (!lead.type_rdv) return [];
+            return parseMultiField(lead.type_rdv);
+        }
+
+        function extractAllMails(lead) {
+            if (!lead.mail) return [];
+            return parseMultiField(lead.mail);
+        }
+
+        function getFullName(lead) {
+            const parts = [];
+            if (lead.prenom) parts.push(lead.prenom);
+            if (lead.nom) parts.push(lead.nom);
+            return parts.length > 0 ? parts.join(' ') : null;
+        }
+
         function renderDashboard(data) {
             let iaLeads = [];
             let humanLeads = [];
             let ncLeads = [];
 
-            const root = Array.isArray(data) ? data[0] : data;
-            if (!root) return;
+            // New format: array of { statut, rdv_check, no_rdv } blocks
+            // Filter out doublons and collect valid blocks
+            const dataArray = Array.isArray(data) ? data : [data];
+            const validBlocks = dataArray.filter(block => {
+                const s = (block.statut || '').toLowerCase().trim();
+                return s !== 'doublon';
+            });
 
             // Collect ALL leads from every known array key
             const iaKeys = ['rdv_check', 'rendez_vous_confirmes', 'converti_ia', 'leads_converti_ia'];
@@ -1522,18 +1697,21 @@
                 }
             }
 
-            // Process IA arrays
-            iaKeys.forEach(key => {
-                if (root[key] && Array.isArray(root[key])) {
-                    root[key].forEach(lead => sortLead(lead, true));
-                }
-            });
+            // Process each valid block
+            validBlocks.forEach(root => {
+                // Process IA arrays
+                iaKeys.forEach(key => {
+                    if (root[key] && Array.isArray(root[key])) {
+                        root[key].forEach(lead => sortLead(lead, true));
+                    }
+                });
 
-            // Process other arrays
-            otherKeys.forEach(key => {
-                if (root[key] && Array.isArray(root[key])) {
-                    root[key].forEach(lead => sortLead(lead, false));
-                }
+                // Process other arrays
+                otherKeys.forEach(key => {
+                    if (root[key] && Array.isArray(root[key])) {
+                        root[key].forEach(lead => sortLead(lead, false));
+                    }
+                });
             });
 
             const total = iaLeads.length + humanLeads.length + ncLeads.length;
@@ -1582,7 +1760,7 @@
         }
 
         function getUsername(lead) {
-            return lead.username || lead.Username || lead.name || lead.nom || lead.user || lead.id || '—';
+            return lead.username || lead.Username || lead.user || lead.id || '—';
         }
 
         function makeLeadCard(lead, colType, draggable) {
@@ -1592,11 +1770,12 @@
             card.dataset.type = colType;
 
             const username = getUsername(lead);
-            const initials = username.substring(0, 2).toUpperCase();
+            const fullName = getFullName(lead);
+            const displayName = fullName || username;
+            const initials = displayName.substring(0, 2).toUpperCase();
 
-            // Extract RDV date from infos
-            const rdvDate = lead.infos ? extractRdvDate(lead.infos) : (lead.rdv || lead.date || null);
-            const rdvFormatted = rdvDate ? formatDate(rdvDate) : null;
+            // Extract all RDV dates
+            const rdvDates = extractAllRdvDates(lead);
 
             // Count objections
             const objCount = lead.objections ? (lead.objections.match(/objection \d+/gi) || []).length : 0;
@@ -1604,15 +1783,23 @@
             // Status label
             const statusLabels = { ia: 'Converti IA', humain: 'Converti Humain', non: 'Non converti' };
 
+            // Build RDV badges — show ALL dates
+            let rdvBadgesHtml = '';
+            rdvDates.forEach(d => {
+                const formatted = formatDate(d);
+                if (formatted) rdvBadgesHtml += `<span class="lead-badge rdv">📅 ${formatted}</span>`;
+            });
+
             card.innerHTML = `
                 <div class="lead-card-top">
                     <div class="lead-card-info">
-                        <div class="lead-name">@${username}</div>
+                        <div class="lead-fullname">${escapeHtml(displayName)}</div>
+                        ${fullName ? `<div class="lead-subtitle">@${escapeHtml(username)}</div>` : ''}
                         <div class="lead-status-line">${statusLabels[colType] || colType}</div>
                     </div>
                 </div>
                 <div class="lead-badges">
-                    ${rdvFormatted ? `<span class="lead-badge rdv">📅 ${rdvFormatted}</span>` : ''}
+                    ${rdvBadgesHtml}
                     ${objCount > 0 ? `<span class="lead-badge obj">💬 ${objCount} objection${objCount > 1 ? 's' : ''}</span>` : ''}
                     ${lead.score ? `<span class="lead-badge score-badge">⭐ ${lead.score}</span>` : ''}
                 </div>
@@ -1691,42 +1878,75 @@
         /* ─── MODAL ─────────────────────────────────────────────── */
         function openModal(lead, colType) {
             const username = getUsername(lead);
-            const initials = username.substring(0, 2).toUpperCase();
+            const fullName = getFullName(lead);
+            const displayName = fullName || username;
+            const initials = displayName.substring(0, 2).toUpperCase();
 
             const avatar = document.getElementById('modal-avatar');
             avatar.className = 'modal-avatar type-' + colType;
             avatar.textContent = initials;
 
-            document.getElementById('modal-name').textContent = '@' + username;
+            document.getElementById('modal-name').textContent = fullName ? escapeHtml(fullName) : '@' + escapeHtml(username);
 
             const typeLabels = { ia: 'Converti IA', humain: 'Converti Humain', non: 'Non Converti' };
             document.getElementById('modal-status').innerHTML = `
                 <span class="status-dot ${colType}"></span>
                 ${typeLabels[colType] || colType}
+                ${fullName ? ` · @${escapeHtml(username)}` : ''}
             `;
 
             let html = '';
 
+            // ── Identity section ──
+            const hasIdentity = lead.nom || lead.prenom || lead.id_principal || lead.username;
+            if (hasIdentity) {
+                html += `<div class="modal-section-title">👤 Identité</div>`;
+                html += `<div class="identity-grid">`;
+                if (lead.prenom) html += `<div class="identity-item"><div class="identity-item-key">Prénom</div><div class="identity-item-val">${escapeHtml(lead.prenom)}</div></div>`;
+                if (lead.nom) html += `<div class="identity-item"><div class="identity-item-key">Nom</div><div class="identity-item-val">${escapeHtml(lead.nom)}</div></div>`;
+                if (lead.username) html += `<div class="identity-item"><div class="identity-item-key">Username</div><div class="identity-item-val">@${escapeHtml(lead.username)}</div></div>`;
+                if (lead.id_principal) html += `<div class="identity-item"><div class="identity-item-key">ID</div><div class="identity-item-val">${lead.id_principal}</div></div>`;
+                html += `</div>`;
+            }
+
+            // ── Emails section ──
+            const mails = extractAllMails(lead);
+            if (mails.length > 0) {
+                html += `<div class="modal-section-title">📧 Emails</div>`;
+                html += `<div class="mail-list">`;
+                mails.forEach(mail => {
+                    html += `<div class="mail-tag">✉️ ${escapeHtml(mail)}</div>`;
+                });
+                html += `</div>`;
+            }
+
+            // ── RDV section (all dates + types) ──
+            const rdvDates = extractAllRdvDates(lead);
+            const rdvTypes = extractAllRdvTypes(lead);
+            if (rdvDates.length > 0) {
+                html += `<div class="modal-section-title">📅 Rendez-vous</div>`;
+                html += `<div class="rdv-list">`;
+                rdvDates.forEach((d, i) => {
+                    const typeLabel = rdvTypes[i] ? rdvTypes[i] : '';
+                    html += `<div class="rdv-item">`;
+                    html += `<span class="rdv-item-date">📅 ${formatDate(d)}</span>`;
+                    if (typeLabel) html += `<span class="rdv-item-type">${escapeHtml(typeLabel)}</span>`;
+                    html += `</div>`;
+                });
+                html += `</div>`;
+            }
+
             // ── Infos section ── 
             if (lead.infos) {
-                html += `<div class="info-section-title">📋 Informations</div>`;
+                html += `<div class="modal-section-title">📋 Informations</div>`;
                 html += formatInfosText(lead.infos);
             }
 
             // ── Objections section ──
             if (lead.objections) {
-                html += `<div class="info-section-title" style="margin-top:8px">💬 Objections</div>`;
+                html += `<div class="modal-section-title" style="margin-top:8px">💬 Objections</div>`;
                 html += formatObjectionsText(lead.objections);
             }
-
-            // ── RDV info ──
-            const rdvDate = extractRdvDate(lead.infos || '');
-            if (rdvDate) {
-                html += `<div class="rdv-badge">📅 RDV : ${formatDate(rdvDate)}</div>`;
-            }
-
-
-
 
             document.getElementById('modal-body').innerHTML = html;
             document.getElementById('modal-overlay').classList.add('active');
@@ -1797,6 +2017,7 @@
         }
 
         function extractRdvDate(text) {
+            if (!text) return null;
             const match = text.match(/(\d{4}-\d{2}-\d{2}T[\d:+]+)/i);
             return match ? match[1] : null;
         }
