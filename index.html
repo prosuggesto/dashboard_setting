@@ -1898,14 +1898,13 @@
             let html = '';
 
             // ── Identity section ──
-            const hasIdentity = lead.nom || lead.prenom || lead.id_principal || lead.username;
+            const hasIdentity = lead.nom || lead.prenom || lead.username;
             if (hasIdentity) {
                 html += `<div class="modal-section-title">👤 Identité</div>`;
                 html += `<div class="identity-grid">`;
                 if (lead.prenom) html += `<div class="identity-item"><div class="identity-item-key">Prénom</div><div class="identity-item-val">${escapeHtml(lead.prenom)}</div></div>`;
                 if (lead.nom) html += `<div class="identity-item"><div class="identity-item-key">Nom</div><div class="identity-item-val">${escapeHtml(lead.nom)}</div></div>`;
                 if (lead.username) html += `<div class="identity-item"><div class="identity-item-key">Username</div><div class="identity-item-val">@${escapeHtml(lead.username)}</div></div>`;
-                if (lead.id_principal) html += `<div class="identity-item"><div class="identity-item-key">ID</div><div class="identity-item-val">${lead.id_principal}</div></div>`;
                 html += `</div>`;
             }
 
