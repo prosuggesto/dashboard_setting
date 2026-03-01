@@ -660,7 +660,6 @@
             flex-direction: column;
             gap: 8px;
             min-height: 80px;
-            max-height: 290px;
             flex: 1;
             overflow-y: auto;
             scroll-snap-type: y mandatory;
@@ -1767,6 +1766,7 @@
             const body = document.getElementById(bodyId);
             const badge = document.getElementById(badgeId);
             body.innerHTML = '';
+            body.style.maxHeight = '';
             badge.textContent = leads.length;
 
             if (!leads.length) {
@@ -1782,6 +1782,19 @@
                 card.style.animationDelay = (idx * 0.04) + 's';
                 body.appendChild(card);
             });
+
+            // Cap height to show exactly 2 cards — calculate after render
+            if (leads.length > 2) {
+                requestAnimationFrame(() => {
+                    const cards = body.querySelectorAll('.lead-card');
+                    if (cards.length >= 2) {
+                        const gap = 8;
+                        const padding = 20; // 10px top + 10px bottom
+                        const h = cards[0].offsetHeight + gap + cards[1].offsetHeight + padding;
+                        body.style.maxHeight = h + 'px';
+                    }
+                });
+            }
         }
 
         function getUsername(lead) {
