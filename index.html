@@ -586,7 +586,8 @@
         .col {
             display: flex;
             flex-direction: column;
-            min-height: 200px;
+            min-height: 320px;
+            max-height: calc(100vh - 290px);
             background: var(--glass);
             border: 1px solid var(--glass-border);
             box-shadow: var(--glass-shadow);
@@ -660,10 +661,8 @@
             flex-direction: column;
             gap: 8px;
             min-height: 80px;
-            max-height: 260px;
+            flex: 1;
             overflow-y: auto;
-            scroll-snap-type: y mandatory;
-            scroll-behavior: smooth;
             transition: background .25s;
         }
 
@@ -702,7 +701,6 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
             position: relative;
             overflow: hidden;
-            scroll-snap-align: start;
         }
 
         .lead-card::before {
