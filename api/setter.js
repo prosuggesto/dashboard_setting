@@ -5,13 +5,19 @@ export default async function handler(req, res) {
     }
 
     try {
-        const response = await fetch('https://n8n.srv862127.hstgr.cloud/webhook/dashboard_lead_setter_humain', {
+        // Build the precise expected payload structure
+        const payload = {
+            userid: req.body.username,
+            Name: req.body.setter
+        };
+
+        const response = await fetch('https://n8n.srv862127.hstgr.cloud/webhook/setting_converti_humain', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'setter.humain': 'update.lead.setter.01'
+                'setter_humain': 'setter_humain.01'
             },
-            body: JSON.stringify(req.body || {})
+            body: JSON.stringify(payload)
         });
 
         const data = await response.json();
