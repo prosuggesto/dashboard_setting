@@ -1543,10 +1543,26 @@
                 </div>
             </div>
             <div class="modal-body" style="padding-top:16px;">
-                <div id="setter-lead-info"
-                    style="margin-bottom:16px; font-size:0.85rem; color:var(--text-secondary); background:rgba(0,0,0,0.03); padding:10px; border-radius:8px; display:none;">
+                <div style="margin-bottom: 12px;">
+                    <label
+                        style="display:block; font-size:0.8rem; font-weight:600; color:var(--text-secondary); margin-bottom:6px;">Nom
+                        du setter :</label>
+                    <input type="text" id="setter-name-input" class="setter-input" placeholder="Ex: Louis..." />
                 </div>
-                <input type="text" id="setter-name-input" class="setter-input" placeholder="Nom du setter..." />
+                <div style="margin-bottom: 12px;">
+                    <label
+                        style="display:block; font-size:0.8rem; font-weight:600; color:var(--text-secondary); margin-bottom:6px;">Mail
+                        du lead :</label>
+                    <input type="text" id="setter-mail-input" class="setter-input"
+                        placeholder="Ex: email@domaine.com" />
+                </div>
+                <div style="margin-bottom: 24px;">
+                    <label
+                        style="display:block; font-size:0.8rem; font-weight:600; color:var(--text-secondary); margin-bottom:6px;">Date
+                        du rdv :</label>
+                    <input type="text" id="setter-date-input" class="setter-input"
+                        placeholder="Ex: 2026-03-19T18:00:00" />
+                </div>
                 <div class="setter-actions">
                     <button class="btn-ghost" onclick="cancelSetterPrompt()">Annuler</button>
                     <button class="btn-primary" style="width:auto; padding:8px 20px;"
@@ -1564,17 +1580,16 @@
 
         .setter-input {
             width: 100%;
-            padding: 14px 16px;
+            padding: 12px 14px;
             border-radius: var(--r-sm);
             border: 1px solid rgba(0, 0, 0, 0.1);
             background: rgba(255, 255, 255, 0.6);
             backdrop-filter: blur(8px);
             font-family: inherit;
-            font-size: 1rem;
+            font-size: 0.95rem;
             color: var(--text);
             outline: none;
             transition: all .2s;
-            margin-bottom: 20px;
         }
 
         .setter-input:focus {
@@ -1999,19 +2014,20 @@
                 pendingDraggedCard = draggedCard;
                 pendingDraggedLead = draggedLead;
 
-                const infoBox = document.getElementById('setter-lead-info');
                 const mails = extractAllMails(draggedLead);
                 const rdvs = extractComplexRdvs(draggedLead);
-                const leadMail = mails.length > 0 ? mails[0] : 'Aucun email';
-                const leadDate = rdvs.length > 0 ? formatDate(rdvs[0].date) : 'Aucune date';
-                infoBox.innerHTML = `<strong>📅 Date :</strong> ${leadDate}<br><strong style="margin-top:4px; display:inline-block;">✉️ Email :</strong> ${escapeHtml(leadMail)}`;
-                infoBox.style.display = 'block';
+                const leadMail = mails.length > 0 ? mails[0] : '';
+                const leadDate = rdvs.length > 0 ? rdvs[0].date : '';
 
                 document.getElementById('setter-overlay').classList.add('active');
+
                 document.getElementById('setter-name-input').value = '';
+                document.getElementById('setter-mail-input').value = leadMail;
+                document.getElementById('setter-date-input').value = leadDate;
+
                 document.getElementById('setter-name-input').focus();
             } else {
-                moveLeadNow(bodyId, 'N/A', draggedLead, draggedCard);
+                moveLeadNow(bodyId, 'N/A', draggedLead, draggedCard, '', '');
             }
 
             // Note: dragend will clear draggedCard and draggedLead soon after this
@@ -2029,6 +2045,9 @@
 
         async function submitSetterPrompt() {
             const setterName = document.getElementById('setter-name-input').value.trim();
+            const mailVal = document.getElementById('setter-mail-input').value.trim();
+            const dateVal = document.getElementById('setter-date-input').value.trim();
+
             if (!setterName) {
                 alert("Veuillez entrer un nom de setter.");
                 return;
@@ -2043,17 +2062,17 @@
             pendingDraggedCard = null;
             pendingDraggedLead = null;
 
-            await moveLeadNow(targetBodyId, setterName, leadToMove, cardToRemove);
+            await moveLeadNow(targetBodyId, setterName, leadToMove, cardToRemove, mailVal, dateVal);
         }
 
-        async function moveLeadNow(bodyId, setterName, lead, cardToRemove) {
+        async function moveLeadNow(bodyId, setterName, lead, cardToRemove, explicitMail, explicitDate) {
             const username = getUsername(lead);
             const leadName = getFullName(lead) || username;
 
             const mails = extractAllMails(lead);
             const rdvs = extractComplexRdvs(lead);
-            const leadMail = mails.length > 0 ? mails[0] : '';
-            const leadDate = rdvs.length > 0 ? rdvs[0].date : ''; // Envoie la date ISO raw
+            const leadMail = explicitMail !== undefined ? explicitMail : (mails.length > 0 ? mails[0] : '');
+            const leadDate = explicitDate !== undefined ? explicitDate : (rdvs.length > 0 ? rdvs[0].date : '');
 
             if (cardToRemove) {
                 cardToRemove.remove();
