@@ -1543,6 +1543,9 @@
                 </div>
             </div>
             <div class="modal-body" style="padding-top:16px;">
+                <div id="setter-lead-info"
+                    style="margin-bottom:16px; font-size:0.85rem; color:var(--text-secondary); background:rgba(0,0,0,0.03); padding:10px; border-radius:8px; display:none;">
+                </div>
                 <input type="text" id="setter-name-input" class="setter-input" placeholder="Nom du setter..." />
                 <div class="setter-actions">
                     <button class="btn-ghost" onclick="cancelSetterPrompt()">Annuler</button>
@@ -1995,6 +1998,15 @@
                 pendingDropBodyId = bodyId;
                 pendingDraggedCard = draggedCard;
                 pendingDraggedLead = draggedLead;
+
+                const infoBox = document.getElementById('setter-lead-info');
+                const mails = extractAllMails(draggedLead);
+                const rdvs = extractComplexRdvs(draggedLead);
+                const leadMail = mails.length > 0 ? mails[0] : 'Aucun email';
+                const leadDate = rdvs.length > 0 ? formatDate(rdvs[0].date) : 'Aucune date';
+                infoBox.innerHTML = `<strong>📅 Date :</strong> ${leadDate}<br><strong style="margin-top:4px; display:inline-block;">✉️ Email :</strong> ${escapeHtml(leadMail)}`;
+                infoBox.style.display = 'block';
+
                 document.getElementById('setter-overlay').classList.add('active');
                 document.getElementById('setter-name-input').value = '';
                 document.getElementById('setter-name-input').focus();
@@ -2036,6 +2048,12 @@
 
         async function moveLeadNow(bodyId, setterName, lead, cardToRemove) {
             const username = getUsername(lead);
+            const leadName = getFullName(lead) || username;
+
+            const mails = extractAllMails(lead);
+            const rdvs = extractComplexRdvs(lead);
+            const leadMail = mails.length > 0 ? mails[0] : '';
+            const leadDate = rdvs.length > 0 ? rdvs[0].date : ''; // Envoie la date ISO raw
 
             if (cardToRemove) {
                 cardToRemove.remove();
@@ -2055,7 +2073,13 @@
                 await fetch(API_SETTER, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, setter: setterName })
+                    body: JSON.stringify({
+                        userid: username,
+                        setter: setterName,
+                        mail: leadMail,
+                        date: leadDate,
+                        Name: leadName
+                    })
                 });
                 showToast('✓ ' + username + ' assigné à ' + setterName, 'success');
             } catch (err) {
