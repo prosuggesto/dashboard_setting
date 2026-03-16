@@ -2027,8 +2027,11 @@
                 const leadMail = mails.length > 0 ? mails[0] : '';
                 const leadDate = rdvs.length > 0 ? rdvs[0].date : '';
 
-                const username = getUsername(draggedLead);
-                const leadName = getFullName(draggedLead) || username;
+                let username = getUsername(draggedLead);
+                if (username && username.toLowerCase() === 'inconnu inconnu') username = '';
+
+                let leadName = getFullName(draggedLead) || username;
+                if (leadName && leadName.toLowerCase() === 'inconnu inconnu') leadName = '';
 
                 document.getElementById('setter-overlay').classList.add('active');
 
