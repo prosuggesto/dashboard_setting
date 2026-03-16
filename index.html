@@ -1697,19 +1697,59 @@
         /* ─── MULTI-VALUE PARSING ────────────────────────────────── */
         function parseMultiField(text) {
             if (!text) return [];
-            // Split on " ---- "
-            const segments = text.split(/\s*----\s*/);
+            // Split on 3 or more hyphens " --- "
+            const segments = text.split(/\s*-{3,}\s*/);
             return segments.map(seg => {
-                // Remove prefix like "mail 1 :" or "date RDV 1 :" or "type de rdv 1 :"
+                // Remove prefix like "mail 1 :" or "date RDV 1 :"
                 const m = seg.match(/^[^:]+:\s*(.*)$/s);
                 return m ? m[1].trim() : seg.trim();
             }).filter(Boolean);
         }
 
+        function extractComplexRdvs(lead) {
+            const rdvs = [];
+
+            // Try extracting from fully structured text first
+            const rdvText = lead.date_rdv || lead['date rdv'];
+            if (rdvText) {
+                const blocks = rdvText.split(/\s*-{3,}\s*/);
+                blocks.forEach(block => {
+                    const dateMatch = block.match(/- Date\s*:\s*(\d{4}-\d{2}-\d{2}T[\d:+]+)/i);
+                    const mailMatch = block.match(/- Mail.*:\s*([^\n]+)/i);
+                    const typeMatch = block.match(/- Type\s*:\s*([^\n]+)/i);
+
+                    if (dateMatch) {
+                        rdvs.push({
+                            date: dateMatch[1].trim(),
+                            mail: mailMatch ? mailMatch[1].trim() : null,
+                            type: typeMatch ? typeMatch[1].trim() : null
+                        });
+                    }
+                });
+
+                // If structured logic found RDVs, return them
+                if (rdvs.length > 0) return rdvs;
+            }
+
+            // Fallback for simple date lists (just dates)
+            const dates = extractAllRdvDates(lead);
+            const types = extractAllRdvTypes(lead);
+
+            dates.forEach((d, i) => {
+                rdvs.push({
+                    date: d,
+                    mail: null,
+                    type: types[i] || null
+                });
+            });
+
+            return rdvs;
+        }
+
         function extractAllRdvDates(lead) {
             // Primary: from the "date rdv" field
-            if (lead['date rdv']) {
-                const parsed = parseMultiField(lead['date rdv']);
+            if (lead.date_rdv || lead['date rdv']) {
+                const parsed = parseMultiField(lead.date_rdv || lead['date rdv']);
                 // Each value may itself contain nested "date RDV1 :" patterns, extract ISO dates
                 const dates = [];
                 parsed.forEach(val => {
@@ -1873,8 +1913,8 @@
             const displayName = fullName || username;
             const initials = displayName.substring(0, 2).toUpperCase();
 
-            // Extract all RDV dates
-            const rdvDates = extractAllRdvDates(lead);
+            // Extract all structured RDVs
+            const rdvs = extractComplexRdvs(lead);
 
             // Count objections
             const objCount = lead.objections ? (lead.objections.match(/objection \d+/gi) || []).length : 0;
@@ -1882,10 +1922,10 @@
             // Status label
             const statusLabels = { ia: 'Converti IA', humain: 'Converti Humain', non: 'Non converti' };
 
-            // Build RDV badges — show ALL dates
+            // Build RDV badges
             let rdvBadgesHtml = '';
-            rdvDates.forEach(d => {
-                const formatted = formatDate(d);
+            rdvs.forEach(r => {
+                const formatted = formatDate(r.date);
                 if (formatted) rdvBadgesHtml += `<span class="lead-badge rdv">📅 ${formatted}</span>`;
             });
 
@@ -1894,6 +1934,11 @@
             if (relance && relance.toLowerCase() !== 'aucune') {
                 rdvBadgesHtml += `<span class="lead-badge" style="background: rgba(168, 85, 247, 0.1); color: var(--purple); border: 1px solid rgba(168, 85, 247, 0.2);">🔄 ${escapeHtml(relance)}</span>`;
             }
+
+            // Setter name badge (for human converted)
+            const setterBadge = (colType === 'humain' && lead.lead_converti_humain && lead.lead_converti_humain.toLowerCase() !== 'oui' && lead.lead_converti_humain.toLowerCase() !== 'non')
+                ? `<span class="lead-badge" style="background: rgba(245, 158, 11, 0.1); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.2);">👤 ${escapeHtml(lead.lead_converti_humain)}</span>`
+                : '';
 
             card.innerHTML = `
                 <div class="lead-card-top">
@@ -1906,6 +1951,7 @@
                 <div class="lead-badges">
                     ${rdvBadgesHtml}
                     ${objCount > 0 ? `<span class="lead-badge obj">💬 ${objCount} objection${objCount > 1 ? 's' : ''}</span>` : ''}
+                    ${setterBadge}
                     ${lead.score ? `<span class="lead-badge score-badge">⭐ ${lead.score}</span>` : ''}
                 </div>
                 ${draggable ? `<div class="drag-hint">
@@ -1937,6 +1983,8 @@
         function onDragLeave(e, bodyId) { document.getElementById(bodyId).classList.remove('drag-over'); }
 
         let pendingDropBodyId = null;
+        let pendingDraggedCard = null;
+        let pendingDraggedLead = null;
 
         function onDrop(e, bodyId) {
             e.preventDefault();
@@ -1945,20 +1993,26 @@
 
             if (bodyId === 'body-humain') {
                 pendingDropBodyId = bodyId;
+                pendingDraggedCard = draggedCard;
+                pendingDraggedLead = draggedLead;
                 document.getElementById('setter-overlay').classList.add('active');
                 document.getElementById('setter-name-input').value = '';
                 document.getElementById('setter-name-input').focus();
             } else {
-                moveLeadNow(bodyId, 'N/A');
+                moveLeadNow(bodyId, 'N/A', draggedLead, draggedCard);
             }
+
+            // Note: dragend will clear draggedCard and draggedLead soon after this
         }
 
         function cancelSetterPrompt() {
             document.getElementById('setter-overlay').classList.remove('active');
+            if (pendingDraggedCard) {
+                pendingDraggedCard.classList.remove('dragging');
+            }
             pendingDropBodyId = null;
-            draggedCard && draggedCard.classList.remove('dragging');
-            draggedCard = null;
-            draggedLead = null;
+            pendingDraggedCard = null;
+            pendingDraggedLead = null;
         }
 
         async function submitSetterPrompt() {
@@ -1968,21 +2022,31 @@
                 return;
             }
             document.getElementById('setter-overlay').classList.remove('active');
+
             const targetBodyId = pendingDropBodyId;
+            const leadToMove = pendingDraggedLead;
+            const cardToRemove = pendingDraggedCard;
+
             pendingDropBodyId = null;
-            await moveLeadNow(targetBodyId, setterName);
+            pendingDraggedCard = null;
+            pendingDraggedLead = null;
+
+            await moveLeadNow(targetBodyId, setterName, leadToMove, cardToRemove);
         }
 
-        async function moveLeadNow(bodyId, setterName) {
-            const lead = draggedLead;
+        async function moveLeadNow(bodyId, setterName, lead, cardToRemove) {
             const username = getUsername(lead);
-            draggedCard && draggedCard.remove();
-            draggedCard = null; draggedLead = null;
+
+            if (cardToRemove) {
+                cardToRemove.remove();
+            }
 
             const body = document.getElementById(bodyId);
             const empty = body.querySelector('.empty-state');
             if (empty) empty.remove();
 
+            // Update local object so it's correct implicitly immediately
+            lead.lead_converti_humain = setterName;
             const newCard = makeLeadCard(lead, 'humain', false);
             body.appendChild(newCard);
             updateBadgesFromDOM();
@@ -2050,24 +2114,28 @@
             const mails = extractAllMails(lead);
             if (mails.length > 0) {
                 html += `<div class="modal-section-title">📧 Emails</div>`;
-                html += `<div class="mail-list">`;
+                html += `<div class="mail-list" style="display:flex; flex-wrap:wrap; gap:8px;">`;
                 mails.forEach(mail => {
-                    html += `<div class="mail-tag">✉️ ${escapeHtml(mail)}</div>`;
+                    html += `<div class="mail-tag" style="background:rgba(58, 123, 213, 0.08); border:1px solid rgba(58, 123, 213, 0.2); padding:6px 12px; border-radius:12px; color:var(--blue); font-size:0.8rem; font-weight:600; display:flex; align-items:center;">✉️ ${escapeHtml(mail)}</div>`;
                 });
                 html += `</div>`;
             }
 
             // ── RDV section (all dates + types) ──
-            const rdvDates = extractAllRdvDates(lead);
-            const rdvTypes = extractAllRdvTypes(lead);
-            if (rdvDates.length > 0) {
+            const rdvs = extractComplexRdvs(lead);
+            if (rdvs.length > 0) {
                 html += `<div class="modal-section-title">📅 Rendez-vous</div>`;
-                html += `<div class="rdv-list">`;
-                rdvDates.forEach((d, i) => {
-                    const typeLabel = rdvTypes[i] ? rdvTypes[i] : '';
-                    html += `<div class="rdv-item">`;
-                    html += `<span class="rdv-item-date">📅 ${formatDate(d)}</span>`;
-                    if (typeLabel) html += `<span class="rdv-item-type">${escapeHtml(typeLabel)}</span>`;
+                html += `<div class="rdv-list" style="display:flex; flex-direction:column; gap:10px;">`;
+                rdvs.forEach((r, i) => {
+                    html += `<div class="rdv-item" style="background:rgba(16, 185, 129, 0.05); border:1px solid rgba(16, 185, 129, 0.15); border-radius:var(--r-xs); padding:12px; position:relative;">`;
+                    html += `<span class="rdv-item-date" style="display:block; font-weight:bold; color:var(--success); margin-bottom:6px;">📅 ${formatDate(r.date)}</span>`;
+
+                    if (r.type) {
+                        html += `<div style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:4px;"><strong>Type:</strong> <span style="background:rgba(0,0,0,0.06); padding:2px 6px; border-radius:6px; font-weight:600;">${escapeHtml(r.type)}</span></div>`;
+                    }
+                    if (r.mail) {
+                        html += `<div style="font-size:0.75rem; color:var(--text-secondary);"><strong>Mail associé:</strong> ${escapeHtml(r.mail)}</div>`;
+                    }
                     html += `</div>`;
                 });
                 html += `</div>`;
