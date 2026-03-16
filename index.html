@@ -1799,6 +1799,8 @@
 
         function extractAllMails(lead) {
             if (!lead.mail) return [];
+            const strVal = String(lead.mail).trim();
+            if (strVal.toLowerCase() === 'non renseigné' || strVal.toLowerCase() === 'aucun email') return [];
             return parseMultiField(lead.mail);
         }
 
