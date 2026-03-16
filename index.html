@@ -1551,6 +1551,12 @@
                 </div>
                 <div style="margin-bottom: 12px;">
                     <label
+                        style="display:block; font-size:0.8rem; font-weight:600; color:var(--text-secondary); margin-bottom:6px;">Nom
+                        du lead :</label>
+                    <input type="text" id="setter-lead-name-input" class="setter-input" placeholder="Ex: Jean Dupont" />
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <label
                         style="display:block; font-size:0.8rem; font-weight:600; color:var(--text-secondary); margin-bottom:6px;">Mail
                         du lead :</label>
                     <input type="text" id="setter-mail-input" class="setter-input"
@@ -2021,15 +2027,19 @@
                 const leadMail = mails.length > 0 ? mails[0] : '';
                 const leadDate = rdvs.length > 0 ? rdvs[0].date : '';
 
+                const username = getUsername(draggedLead);
+                const leadName = getFullName(draggedLead) || username;
+
                 document.getElementById('setter-overlay').classList.add('active');
 
                 document.getElementById('setter-name-input').value = '';
+                document.getElementById('setter-lead-name-input').value = leadName;
                 document.getElementById('setter-mail-input').value = leadMail;
                 document.getElementById('setter-date-input').value = leadDate;
 
                 document.getElementById('setter-name-input').focus();
             } else {
-                moveLeadNow(bodyId, 'N/A', draggedLead, draggedCard, '', '');
+                moveLeadNow(bodyId, 'N/A', draggedLead, draggedCard, '', '', '');
             }
 
             // Note: dragend will clear draggedCard and draggedLead soon after this
@@ -2047,6 +2057,7 @@
 
         async function submitSetterPrompt() {
             const setterName = document.getElementById('setter-name-input').value.trim();
+            const leadNameVal = document.getElementById('setter-lead-name-input').value.trim();
             const mailVal = document.getElementById('setter-mail-input').value.trim();
             const dateVal = document.getElementById('setter-date-input').value.trim();
 
@@ -2064,12 +2075,13 @@
             pendingDraggedCard = null;
             pendingDraggedLead = null;
 
-            await moveLeadNow(targetBodyId, setterName, leadToMove, cardToRemove, mailVal, dateVal);
+            await moveLeadNow(targetBodyId, setterName, leadToMove, cardToRemove, mailVal, dateVal, leadNameVal);
         }
 
-        async function moveLeadNow(bodyId, setterName, lead, cardToRemove, explicitMail, explicitDate) {
+        async function moveLeadNow(bodyId, setterName, lead, cardToRemove, explicitMail, explicitDate, explicitName) {
             const username = getUsername(lead);
-            const leadName = getFullName(lead) || username;
+            const computedName = getFullName(lead) || username;
+            const leadName = explicitName !== undefined ? explicitName : computedName;
 
             const mails = extractAllMails(lead);
             const rdvs = extractComplexRdvs(lead);
