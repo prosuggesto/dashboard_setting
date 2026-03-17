@@ -1738,7 +1738,7 @@
             if (rdvText) {
                 const blocks = rdvText.split(/\s*-{3,}\s*/);
                 blocks.forEach(block => {
-                    const dateMatch = block.match(/- Date\s*:\s*(\d{4}-\d{2}-\d{2}T[\d:+]+)/i);
+                    const dateMatch = block.match(/- Date\s*:\s*(\d{4}-\d{2}-\d{2}(?:T[\d:+]+)?)/i);
                     const mailMatch = block.match(/- Mail.*:\s*([^\n]+)/i);
                     const typeMatch = block.match(/- Type\s*:\s*([^\n]+)/i);
 
@@ -1778,7 +1778,7 @@
                 const dates = [];
                 parsed.forEach(val => {
                     // Extract all ISO dates from the value
-                    const isoMatches = val.match(/(\d{4}-\d{2}-\d{2}T[\d:+]+)/g);
+                    const isoMatches = val.match(/(\d{4}-\d{2}-\d{2}(?:T[\d:+]+)?)/g);
                     if (isoMatches) {
                         isoMatches.forEach(d => { if (!dates.includes(d)) dates.push(d); });
                     }
@@ -1787,7 +1787,7 @@
             }
             // Fallback: extract from infos text
             if (lead.infos) {
-                const matches = lead.infos.match(/(\d{4}-\d{2}-\d{2}T[\d:+]+)/g);
+                const matches = lead.infos.match(/(\d{4}-\d{2}-\d{2}(?:T[\d:+]+)?)/g);
                 if (matches) {
                     const unique = [...new Set(matches)];
                     return unique;
@@ -2307,14 +2307,20 @@
 
         function extractRdvDate(text) {
             if (!text) return null;
-            const match = text.match(/(\d{4}-\d{2}-\d{2}T[\d:+]+)/i);
+            const match = text.match(/(\d{4}-\d{2}-\d{2}(?:T[\d:+]+)?)/i);
             return match ? match[1] : null;
         }
 
         function formatDate(isoStr) {
             try {
                 const d = new Date(isoStr);
-                return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) + ' à ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+                if (isNaN(d)) return isoStr;
+                const datePart = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                if (!isoStr.includes('T') && isoStr.length === 10) {
+                    return datePart;
+                }
+                const timePart = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+                return datePart + ' à ' + timePart;
             } catch { return isoStr; }
         }
 
